@@ -20,3 +20,6 @@ export {
 } from "./registry.js";
 
 export { registryFileSchema } from "./schema.js";
+
+export { migrate } from "./legacy/index.js";
+export type { SourceName, MigrationResult } from "./legacy/index.js";

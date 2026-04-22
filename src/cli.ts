@@ -18,6 +18,9 @@ Usage:
   mcp-registry add <id> [options]         Add a local server
   mcp-registry add-remote <id> [options]  Add a remote server
   mcp-registry remove <id>               Remove a server
+  mcp-registry migrate                   Migrate legacy configs to registry
+    --dry-run                            Show changes without writing
+    --source <src1,src2,...>             Sources: opencode,openclaw,registry (default: all)
   mcp-registry validate                   Validate the registry file
   mcp-registry path                       Print the registry file path
 
@@ -41,6 +44,8 @@ function getRegistryPath(): string {
   return process.env.MCP_REGISTRY_PATH || DEFAULT_REGISTRY_PATH;
 }
 
+const BOOLEAN_FLAGS = new Set(["dry-run"]);
+
 function parseArgs(argv: string[]): { command: string; positional: string[]; flags: Record<string, string> } {
   const command = argv[0] || "help";
   const positional: string[] = [];
@@ -48,8 +53,13 @@ function parseArgs(argv: string[]): { command: string; positional: string[]; fla
 
   for (let i = 1; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg.startsWith("--") && i + 1 < argv.length) {
-      flags[arg.slice(2)] = argv[++i];
+    if (arg.startsWith("--")) {
+      const key = arg.slice(2);
+      if (BOOLEAN_FLAGS.has(key)) {
+        flags[key] = "true";
+      } else if (i + 1 < argv.length) {
+        flags[key] = argv[++i];
+      }
     } else {
       positional.push(arg);
     }
@@ -185,6 +195,44 @@ async function main() {
       } catch (err) {
         console.error(`Validation failed: ${(err as Error).message}`);
         process.exit(1);
+      }
+      break;
+    }
+
+    case "migrate": {
+      const { migrate } = await import("./legacy/index.js");
+      type SourceName = "opencode" | "openclaw" | "registry";
+      const dryRun = flags["dry-run"] === "true";
+      const sources = flags.source
+        ? (flags.source.split(",") as SourceName[])
+        : undefined;
+
+      const result = await migrate({ dryRun, sources, registryPath });
+
+      for (const w of result.warnings) {
+        console.log(`  \u26a0 ${w}`);
+      }
+      if (result.warnings.length > 0) console.log();
+
+      const ids = Object.keys(result.servers).sort();
+      for (const id of ids) {
+        const entry = result.servers[id];
+        const isRemote = "type" in entry && entry.type === "remote";
+        const type = isRemote ? "remote" : "local";
+        const target = isRemote
+          ? (entry as RemoteServerEntry).url
+          : (entry as LocalServerEntry).command;
+        const status = entry.enabled === false ? " [disabled]" : "";
+        const from = result.sources[id]?.length
+          ? ` \u2190 ${result.sources[id].join(", ")}`
+          : " \u2190 existing";
+        console.log(`  ${id}  (${type})  ${target}${status}${from}`);
+      }
+
+      if (dryRun) {
+        console.log(`\nDry run: ${ids.length} server(s) would be in registry. No files written.`);
+      } else {
+        console.log(`\nMigrated to ${registryPath}. ${ids.length} server(s) total.`);
       }
       break;
     }
