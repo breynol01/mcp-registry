@@ -56,7 +56,7 @@ function parseArgs(argv: string[]): { command: string; positional: string[]; fla
       const key = arg.slice(2);
       if (BOOLEAN_FLAGS.has(key)) {
         flags[key] = "true";
-      } else if (i + 1 < argv.length) {
+      } else if (i + 1 < argv.length && !argv[i + 1].startsWith("--")) {
         flags[key] = argv[++i];
       } else {
         console.error(`Missing value for --${key}`);

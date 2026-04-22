@@ -42,7 +42,7 @@ export async function parseRegistryConfig(path: string = REGISTRY_CONFIG_PATH): 
   for (const [id, entry] of Object.entries(rawEntries)) {
     const result = serverEntrySchema.safeParse(entry);
     if (result.success) {
-      servers[id] = result.data as ServerEntry;
+      servers[id] = result.data;
     } else {
       const issues = result.error.issues.map((i) => i.message).join("; ");
       warnings.push(`mcp-registry.json: skipping "${id}": ${issues}`);

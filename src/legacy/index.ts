@@ -163,6 +163,8 @@ export async function migrate(options: {
     for (const issue of validation.error.issues) {
       warnings.push(`validation: ${issue.path.join(".")}: ${issue.message}`);
     }
+    // Don't write invalid data to disk
+    return { servers: finalServers, sources: merged.sources, warnings };
   }
 
   // Write unless dry-run
