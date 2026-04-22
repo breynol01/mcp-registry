@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { serverEntrySchema } from "../schema.js";
 import type { ServerEntry } from "../types.js";
 
 export const REGISTRY_CONFIG_PATH = join(homedir(), ".config", "mcp-registry.json");
@@ -28,14 +29,25 @@ export async function parseRegistryConfig(path: string = REGISTRY_CONFIG_PATH): 
     throw new Error(`Failed to parse registry config JSON at ${path}`);
   }
 
-  const entries = parsed.servers as Record<string, ServerEntry> | undefined;
-  if (!entries) {
+  const rawEntries = parsed.servers as Record<string, unknown> | undefined;
+  if (!rawEntries || typeof rawEntries !== "object") {
     return { servers: {}, warnings: ["mcp-registry.json: no servers key found"] };
   }
 
-  // Already near-canonical format — pass through directly.
+  // Validate each entry individually — reject malformed ones with warnings.
   // ${ENV_VAR} templates in headers and op:// URIs in env are preserved as-is.
-  const servers: Record<string, ServerEntry> = { ...entries };
+  const servers: Record<string, ServerEntry> = {};
+  const warnings: string[] = [];
 
-  return { servers, warnings: [] };
+  for (const [id, entry] of Object.entries(rawEntries)) {
+    const result = serverEntrySchema.safeParse(entry);
+    if (result.success) {
+      servers[id] = result.data as ServerEntry;
+    } else {
+      const issues = result.error.issues.map((i) => i.message).join("; ");
+      warnings.push(`mcp-registry.json: skipping "${id}": ${issues}`);
+    }
+  }
+
+  return { servers, warnings };
 }

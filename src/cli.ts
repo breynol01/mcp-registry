@@ -7,14 +7,13 @@ import {
   addServer,
   removeServer,
   hasServer,
-  getRegisteredServers,
 } from "./registry.js";
 import type { LocalServerEntry, RemoteServerEntry } from "./types.js";
 
 const USAGE = `mcp-registry — Canonical MCP server registry
 
 Usage:
-  mcp-registry list                       List registered servers
+  mcp-registry list [--json]               List registered servers
   mcp-registry add <id> [options]         Add a local server
   mcp-registry add-remote <id> [options]  Add a remote server
   mcp-registry remove <id>               Remove a server
@@ -44,7 +43,7 @@ function getRegistryPath(): string {
   return process.env.MCP_REGISTRY_PATH || DEFAULT_REGISTRY_PATH;
 }
 
-const BOOLEAN_FLAGS = new Set(["dry-run"]);
+const BOOLEAN_FLAGS = new Set(["dry-run", "json"]);
 
 function parseArgs(argv: string[]): { command: string; positional: string[]; flags: Record<string, string> } {
   const command = argv[0] || "help";
@@ -59,6 +58,9 @@ function parseArgs(argv: string[]): { command: string; positional: string[]; fla
         flags[key] = "true";
       } else if (i + 1 < argv.length) {
         flags[key] = argv[++i];
+      } else {
+        console.error(`Missing value for --${key}`);
+        process.exit(1);
       }
     } else {
       positional.push(arg);
@@ -92,21 +94,26 @@ async function main() {
 
     case "list": {
       const registry = await loadRegistry(registryPath);
-      const servers = getRegisteredServers(registry);
-      if (servers.length === 0) {
+      const entries = Object.entries(registry.servers);
+      if (entries.length === 0) {
         console.log("No servers registered.");
         break;
       }
-      for (const s of servers) {
-        const type = s.config.type;
-        const target = type === "local"
-          ? s.config.command.join(" ")
-          : s.config.url;
-        const desc = s.metadata?.description ? ` — ${s.metadata.description}` : "";
-        const status = s.config.enabled === false ? " [disabled]" : "";
-        console.log(`  ${s.id}  (${type})  ${target}${desc}${status}`);
+      if (flags.json === "true") {
+        console.log(JSON.stringify(registry, null, 2));
+        break;
       }
-      console.log(`\n${servers.length} server(s) registered.`);
+      for (const [id, entry] of entries) {
+        const isRemote = "type" in entry && entry.type === "remote";
+        const type = isRemote ? "remote" : "local";
+        const target = isRemote
+          ? (entry as RemoteServerEntry).url
+          : (entry as LocalServerEntry).command;
+        const desc = entry.metadata?.description ? ` — ${entry.metadata.description}` : "";
+        const status = entry.enabled === false ? " [disabled]" : "";
+        console.log(`  ${id}  (${type})  ${target}${desc}${status}`);
+      }
+      console.log(`\n${entries.length} server(s) registered.`);
       break;
     }
 
@@ -240,9 +247,13 @@ async function main() {
     case "help":
     case "--help":
     case "-h":
-    default:
       console.log(USAGE);
       break;
+
+    default:
+      console.error(`Unknown command: ${command}\n`);
+      console.log(USAGE);
+      process.exit(1);
   }
 }
 

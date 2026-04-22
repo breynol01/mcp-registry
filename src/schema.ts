@@ -24,7 +24,7 @@ const remoteServerSchema = z.object({
   metadata: serverMetadataSchema.optional(),
 });
 
-const serverEntrySchema = z.union([remoteServerSchema, localServerSchema]);
+export const serverEntrySchema = z.union([remoteServerSchema, localServerSchema]);
 
 export const registryFileSchema = z.object({
   version: z.number().int().positive(),

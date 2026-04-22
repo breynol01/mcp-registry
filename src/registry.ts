@@ -40,7 +40,7 @@ export async function loadRegistry(
     throw new Error(`Invalid registry at ${path}:\n${issues}`);
   }
 
-  return result.data as RegistryFile;
+  return result.data;
 }
 
 // --- Write ---
@@ -49,9 +49,13 @@ export async function saveRegistry(
   registry: RegistryFile,
   path: string = DEFAULT_REGISTRY_PATH,
 ): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  const json = JSON.stringify(registry, null, 2) + "\n";
-  await writeFile(path, json, "utf-8");
+  try {
+    await mkdir(dirname(path), { recursive: true });
+    const json = JSON.stringify(registry, null, 2) + "\n";
+    await writeFile(path, json, "utf-8");
+  } catch (err) {
+    throw new Error(`Failed to write registry at ${path}: ${(err as Error).message}`);
+  }
 }
 
 // --- Normalize ---
@@ -61,16 +65,16 @@ export function normalizeEntry(entry: ServerEntry): NormalizedServerConfig | und
 
   if ("type" in entry && entry.type === "remote") {
     if (!entry.url || typeof entry.url !== "string") return undefined;
-    const config: NormalizedServerConfig = {
-      type: "remote",
+    const headers = entry.headers && Object.keys(entry.headers).length > 0
+      ? entry.headers
+      : undefined;
+    return {
+      type: "remote" as const,
       url: entry.url,
+      ...(headers && { headers }),
       enabled: entry.enabled,
       timeout: entry.timeout,
     };
-    if (entry.headers && Object.keys(entry.headers).length > 0) {
-      (config as { headers: Record<string, string> }).headers = entry.headers;
-    }
-    return config;
   }
 
   const local = entry;
@@ -82,18 +86,17 @@ export function normalizeEntry(entry: ServerEntry): NormalizedServerConfig | und
     ? local.args.filter((a): a is string => typeof a === "string")
     : [];
 
-  const config: NormalizedServerConfig = {
-    type: "local",
+  const environment = local.env && Object.keys(local.env).length > 0
+    ? local.env
+    : undefined;
+
+  return {
+    type: "local" as const,
     command: [local.command, ...args],
+    ...(environment && { environment }),
     enabled: local.enabled,
     timeout: local.timeout,
   };
-
-  if (local.env && Object.keys(local.env).length > 0) {
-    (config as { environment: Record<string, string> }).environment = local.env;
-  }
-
-  return config;
 }
 
 export function getRegisteredServers(registry: RegistryFile): RegisteredServer[] {

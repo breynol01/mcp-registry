@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { serverEntrySchema } from "../schema.js";
 import type { ServerEntry, LocalServerEntry, RemoteServerEntry } from "../types.js";
 
 export const OPENCLAW_PATH = join(homedir(), ".openclaw", "openclaw.json");
@@ -42,6 +43,8 @@ export async function parseOpenClaw(path: string = OPENCLAW_PATH): Promise<Parse
   for (const [id, entry] of Object.entries(entries)) {
     if (EXCLUDED.has(id)) continue;
 
+    let candidate: ServerEntry;
+
     // Remote: has url field (transport: "streamable-http" or similar)
     if (entry.url && typeof entry.url === "string") {
       const remote: RemoteServerEntry = {
@@ -51,22 +54,30 @@ export async function parseOpenClaw(path: string = OPENCLAW_PATH): Promise<Parse
       if (entry.headers && typeof entry.headers === "object") {
         remote.headers = entry.headers as Record<string, string>;
       }
-      servers[id] = remote;
-      continue;
-    }
-
-    // Local: command + args, type "stdio" → drop type
-    if (entry.command && typeof entry.command === "string") {
+      candidate = remote;
+    } else if (entry.command && typeof entry.command === "string") {
+      // Local: command + args, type "stdio" → drop type
       const local: LocalServerEntry = {
         command: entry.command,
       };
       if (Array.isArray(entry.args)) {
-        local.args = entry.args as string[];
+        local.args = (entry.args as unknown[]).filter((a): a is string => typeof a === "string");
       }
       if (entry.env && typeof entry.env === "object") {
         local.env = entry.env as Record<string, string>;
       }
-      servers[id] = local;
+      candidate = local;
+    } else {
+      warnings.push(`openclaw: skipping "${id}": no command or url found`);
+      continue;
+    }
+
+    const result = serverEntrySchema.safeParse(candidate);
+    if (result.success) {
+      servers[id] = candidate;
+    } else {
+      const issues = result.error.issues.map((i) => i.message).join("; ");
+      warnings.push(`openclaw: skipping "${id}": ${issues}`);
     }
   }
 
