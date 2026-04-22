@@ -72,8 +72,8 @@ export function normalizeEntry(entry: ServerEntry): NormalizedServerConfig | und
       type: "remote" as const,
       url: entry.url,
       ...(headers && { headers }),
-      enabled: entry.enabled,
-      timeout: entry.timeout,
+      ...(entry.enabled !== undefined && { enabled: entry.enabled }),
+      ...(entry.timeout !== undefined && { timeout: entry.timeout }),
     };
   }
 
@@ -94,8 +94,8 @@ export function normalizeEntry(entry: ServerEntry): NormalizedServerConfig | und
     type: "local" as const,
     command: [local.command, ...args],
     ...(environment && { environment }),
-    enabled: local.enabled,
-    timeout: local.timeout,
+    ...(local.enabled !== undefined && { enabled: local.enabled }),
+    ...(local.timeout !== undefined && { timeout: local.timeout }),
   };
 }
 

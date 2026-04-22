@@ -13,6 +13,7 @@
     "prepare": "tsc",
     "start": "node dist/cli.js",
     "check": "tsc --noEmit",
+    "pretest": "tsc",
     "test": "node --import tsx --test src/**/*.test.ts"
   },
   "keywords": [

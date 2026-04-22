@@ -142,6 +142,20 @@ describe("normalizeEntry", () => {
     assert.equal(normalizeEntry({ type: "remote" } as any), undefined);
   });
 
+  it("omits enabled and timeout when not set", () => {
+    const result = normalizeEntry({ command: "node" });
+    assert.ok(result);
+    assert.ok(!("enabled" in result));
+    assert.ok(!("timeout" in result));
+  });
+
+  it("includes enabled and timeout when set", () => {
+    const result = normalizeEntry({ command: "node", enabled: false, timeout: 5000 });
+    assert.ok(result);
+    assert.equal(result.enabled, false);
+    assert.equal(result.timeout, 5000);
+  });
+
   it("filters non-string args", () => {
     const result = normalizeEntry({
       command: "node",

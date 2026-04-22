@@ -89,7 +89,7 @@ await saveRegistry(updated);
 | `addServer(registry, id, entry)` | Return new registry with server added |
 | `removeServer(registry, id)` | Return new registry with server removed |
 | `hasServer(registry, id)` | Check if server exists |
-| `getRegisteredServers(registry)` | Get enabled servers in normalized format |
+| `getRegisteredServers(registry)` | Get enabled servers in normalized format (excludes `enabled: false`) |
 | `normalizeEntry(entry)` | Convert on-disk entry to normalized config |
 | `registryFileSchema` | Zod schema for the registry file |
 | `serverEntrySchema` | Zod schema for individual server entries |
