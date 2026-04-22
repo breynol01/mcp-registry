@@ -11,8 +11,13 @@ A shared library and CLI that owns the canonical server registry at `~/.config/m
 - `src/types.ts` — On-disk and normalized type definitions
 - `src/schema.ts` — Zod validation schema for servers.json
 - `src/registry.ts` — Load, save, normalize, mutate registry
-- `src/cli.ts` — CLI entry point (`mcp-registry add|remove|list|validate|path`)
+- `src/cli.ts` — CLI entry point (`mcp-registry add|remove|list|validate|migrate|path`)
 - `src/index.ts` — Public API exports
+- `src/legacy/` — Legacy config parsers for the `migrate` command
+  - `opencode.ts` — JSONC parser for `~/.config/opencode/opencode.json`
+  - `openclaw.ts` — Parser for `~/.openclaw/openclaw.json`
+  - `registryConfig.ts` — Parser for `~/.config/mcp-registry.json`
+  - `index.ts` — Orchestrator: load sources, merge, deduplicate, validate, write
 
 ## Build and Run
 
@@ -46,8 +51,10 @@ File: `~/.config/mcp/servers.json`
 
 - TypeScript strict mode, ESM (`"type": "module"`)
 - 2-space indentation, camelCase functions, PascalCase types
-- Zod for validation, no runtime dependencies beyond zod
+- Zod for validation, `jsonc-parser` for JSONC files — no other runtime dependencies
 - Library exports from `src/index.ts`; CLI is `src/cli.ts`
+- Pure mutation functions (return new objects, no in-place mutation)
+- ENOENT-graceful file reads (return empty defaults if file missing)
 
 ## Environment Variables
 
