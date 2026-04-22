@@ -51,12 +51,28 @@
 
 - **Pure mutations**: `addServer()` / `removeServer()` return new registry objects — no in-place mutation
 - **ENOENT-graceful reads**: Missing files return empty defaults, not errors
+- **Validation at boundaries**: All data entering the system (file reads, legacy parser output, CLI input) is validated through Zod schemas before acceptance. Legacy parsers validate each entry individually via `serverEntrySchema` and emit warnings for rejected entries rather than silently passing through malformed data
 - **Richness-based dedup**: When a server appears in multiple sources, the version with the most populated fields wins. Ties broken by source priority (registry > openclaw > opencode)
 - **Pass-through secrets**: `op://` URIs and `${ENV_VAR}` templates are stored as literal strings — resolution happens downstream in the switchboard
+- **Fail-safe migration**: `migrate()` validates the merged registry with Zod before writing; if validation fails, no file is written and warnings are returned
+
+## CLI
+
+Commands: `list [--json]`, `add`, `add-remote`, `remove`, `validate`, `migrate [--dry-run] [--source]`, `path`
+
+The CLI uses a custom arg parser (no dependencies). Boolean flags are declared in `BOOLEAN_FLAGS`. Non-boolean flags require a value — the parser rejects flags at end-of-argv or followed by another `--flag` with a specific error message. Unknown commands exit 1 with an error.
+
+`list` operates directly on `registry.servers` (not `getRegisteredServers()`) so disabled servers are visible. `getRegisteredServers()` is the library API for consumers that want only enabled, normalized servers.
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| `zod` | Schema validation for registry file |
+| `zod` | Schema validation for registry file and individual entries |
 | `jsonc-parser` | Parse opencode.json (JSONC with comments) |
+
+## Testing
+
+Tests use Node's built-in test runner (`node --test`). Test files live alongside source in `src/` as `*.test.ts`. No additional test dependencies.
+
+Coverage targets: schema validation, registry CRUD, CLI arg parsing, legacy parser transformation and validation, migration merge logic.

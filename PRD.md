@@ -15,11 +15,13 @@ A canonical registry library and CLI at `~/.config/mcp/servers.json` that:
 
 ## Success Criteria
 
-- [ ] All MCP-aware tools read from `~/.config/mcp/servers.json` as the sole source of truth
+- [x] All MCP-aware tools read from `~/.config/mcp/servers.json` as the sole source of truth
 - [x] `mcp-registry migrate` consolidates all legacy sources (21 servers, 0 validation errors)
 - [x] Schema validation via Zod catches malformed entries at load time
 - [x] CLI supports full CRUD lifecycle for both local and remote servers
-- [ ] Legacy config files cleaned up (opencode mcp key removed, mcp-registry.json deleted, openclaw servers trimmed)
+- [x] Legacy config files cleaned up (opencode mcp key removed, mcp-registry.json deleted, openclaw servers trimmed)
+- [x] Legacy parsers validate entries with Zod before accepting (hardened 2026-04-22)
+- [x] CLI robustness: unknown command errors, flag validation, disabled server visibility, JSON output
 
 ## Assumptions
 

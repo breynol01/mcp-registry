@@ -8,6 +8,19 @@
 - Special-case handling: beeper forced to local proxy version, google-mcp env merged with `enabled: false`, sentry oauth warning emitted
 - `mcp-switchboard` excluded from migration (it's the consumer, not a server)
 
+### 2026-04-22 — Hardening pass
+
+- Removed unsafe `as` type casts in `normalizeEntry()` — objects now built fully at construction
+- Removed redundant `as RegistryFile` cast from `loadRegistry()` (Zod infers correctly)
+- Added error context to `saveRegistry()` with try/catch wrapping mkdir/writeFile
+- Legacy parsers (opencode, openclaw, registryConfig) now validate each entry with `serverEntrySchema` before accepting; malformed entries are skipped with warnings
+- CLI flag parser errors on `--flag` with no value and rejects `--flag --otherflag` as missing value
+- Unknown CLI commands now print "Unknown command: X" and exit 1
+- `list` command shows all servers including disabled (was filtering via `getRegisteredServers()`)
+- Added `--json` flag to `list` for programmatic output
+- `migrate()` no longer writes to disk if Zod validation of merged registry fails
+- Exported `serverEntrySchema` from `schema.ts` for use by legacy parsers and external consumers
+
 ### 2026-04-21 — Legacy config cleanup completed
 
 - Updated mcp-switchboard `defaultRegistryPath()` to return `~/.config/mcp/servers.json` (was `~/.config/mcp-registry.json`)

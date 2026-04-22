@@ -56,6 +56,14 @@ File: `~/.config/mcp/servers.json`
 - Pure mutation functions (return new objects, no in-place mutation)
 - ENOENT-graceful file reads (return empty defaults if file missing)
 
+## Testing
+
+- Test runner: Node built-in (`node --test`)
+- Test files: colocated with source as `src/*.test.ts` and `src/legacy/*.test.ts`
+- Run: `npm test`
+- No mocking frameworks — tests use real temp files via `node:fs/promises` and `os.tmpdir()`
+- All tests must clean up temp files in `after()` hooks
+
 ## Environment Variables
 
 - `MCP_REGISTRY_PATH` — override registry file path (default: `~/.config/mcp/servers.json`)
